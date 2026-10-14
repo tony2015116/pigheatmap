@@ -1,0 +1,110 @@
+# 获取通用绘图主题
+
+项目统一的 ggplot 主题样式。字号相关参数均已开放，方便按图表用途
+（例如投屏或打印报告）调整坐标轴、标题、图例等文字大小。
+
+本函数**不会**调用
+[`showtext::showtext_auto()`](https://rdrr.io/pkg/showtext/man/showtext_auto.html)，因为那会修改整个
+R 会话的 图形设备状态。需要中文字体渲染时，请在脚本开头显式调用一次
+[`enable_cn_font()`](https://tony2015116.github.io/pigheatmap/reference/enable_cn_font.md)。
+
+## Usage
+
+``` r
+get_common_theme(
+  base_size = 14,
+  title_size = 20,
+  subtitle_size = 12,
+  caption_size = 10,
+  axis_text_size = 12,
+  axis_title_size = 15,
+  strip_text_size = 14,
+  legend_title_size = 13,
+  legend_text_size = 11,
+  x_axis_angle = -45,
+  y_axis_angle = 0,
+  x_axis_hjust = NULL,
+  x_axis_vjust = NULL,
+  y_axis_hjust = NULL,
+  y_axis_vjust = NULL,
+  panel_spacing_mm = 6,
+  legend_position = "right"
+)
+```
+
+## Arguments
+
+- base_size:
+
+  基础字体大小，默认为 14，影响未单独设置的其他文字元素。
+
+- title_size:
+
+  主标题字号，默认为 20。
+
+- subtitle_size:
+
+  副标题字号，默认为 12。
+
+- caption_size:
+
+  底部说明文字字号，默认为 10。
+
+- axis_text_size:
+
+  坐标轴刻度文字字号，默认为 12。
+
+- axis_title_size:
+
+  坐标轴标题字号，默认为 15。
+
+- strip_text_size:
+
+  分面标题字号，默认为 14。
+
+- legend_title_size:
+
+  图例标题字号，默认为 13。
+
+- legend_text_size:
+
+  图例文字字号，默认为 11。
+
+- x_axis_angle:
+
+  X 轴刻度文字的旋转角度（度），默认为 -45。
+
+- y_axis_angle:
+
+  Y 轴刻度文字的旋转角度（度），默认为 0（水平）。
+
+- x_axis_hjust, x_axis_vjust:
+
+  （可选）X 轴刻度文字的水平/垂直对齐方式。默认为 `NULL`，此时根据
+  `x_axis_angle` 自动选择；也可以直接传 0~1 的数值覆盖。
+
+- y_axis_hjust, y_axis_vjust:
+
+  （可选）Y 轴刻度文字的对齐方式，用法同上。
+
+- panel_spacing_mm:
+
+  分面之间的间距（毫米），默认为 6。
+
+- legend_position:
+
+  图例位置，默认为 `"right"`。
+
+## Value
+
+一个 ggplot2 主题对象，可以用 `+` 叠加到图上。
+
+## Examples
+
+``` r
+library(ggplot2)
+ggplot(mtcars, aes(factor(cyl), factor(gear), fill = mpg)) +
+  geom_tile() +
+  labs(title = "mtcars", x = "cyl", y = "gear") +
+  get_common_theme(x_axis_angle = 0, title_size = 16)
+```
