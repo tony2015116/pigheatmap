@@ -1,0 +1,177 @@
+---
+title: "Development actions history"
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+本文件记录 pigheatmap 的开发流程，所有代码块都是 `eval=FALSE`，需要时复制到控制台执行。
+
+**核心原则**：`R/`、`tests/testthat/test-*.R`、`vignettes/` 都由 fusen 从 `dev/flat_*.Rmd`
+生成，**不要直接修改它们**，否则下次 inflate 会被覆盖。要改代码、文档、测试或文章，
+都去改对应的 flat 文件。
+
+| flat 文件 | 生成的 R 文件 | 生成的文章 (vignette) |
+|---|---|---|
+| `dev/flat_heatmap.Rmd` | `R/summarise.R`、`R/heatmap.R` | `vignettes/pigheatmap.Rmd`（快速上手） |
+| `dev/flat_scales.Rmd`  | `R/scales.R` | `vignettes/segmented-scales.Rmd`（分段色阶） |
+| `dev/flat_theme.Rmd`   | `R/theme.R`  | `vignettes/theme-and-fonts.Rmd`（主题与中文字体） |
+| `dev/flat_utils.Rmd`   | `R/pigheatmap-package.R`、`R/zzz.R`、`R/strings.R`、`R/data.R` | 无 |
+
+不由 fusen 生成、需要手动维护的文件：`tests/testthat/helper-data.R`（测试辅助函数）、
+`data-raw/sow_demo.R`（示例数据生成脚本）。它们已登记在 `dev/config_fusen.yaml` 的 `keep` 中。
+
+# 日常开发流程
+
+```{r development-routine, eval=FALSE}
+# 1. 修改 dev/flat_*.Rmd
+
+# 2. 一键重新生成 R/、tests/、vignettes/，并更新文档与 DESCRIPTION 依赖。
+#    脚本会先把函数代码里的中文字符串转换为 \uXXXX 转义（CRAN 要求 R 代码只含 ASCII），
+#    再逐个 inflate flat 文件。
+source("dev/inflate_all.R")
+
+# 3. 检查
+devtools::test()
+devtools::check()
+
+# 4. 本地预览网站
+pkgdown::build_site()
+```
+
+只改了一个 flat 文件时，也可以执行该文件末尾 `development-inflate` 代码块里的
+`fusen::inflate(...)`，参数已经写好（如果改动了函数里的中文字符串，先运行
+`source("tools/escape_strings.R")`）。
+
+**请不要使用 `fusen::inflate_all()`**：fusen 0.7.x 不会在配置文件中保存文章的中文标题，
+用它重新生成后文章标题会变成英文文件名。`dev/inflate_all.R` 做的是同一件事，但保留了中文标题。
+
+## 新增一个函数
+
+在合适的 flat 文件中按 fusen 的约定写四个代码块（`function-` / `examples-` / `tests-`
+前缀），并用 chunk 选项 `filename = "xxx"` 指定生成到哪个 R 文件：
+
+````markdown
+```{r function-my_fun, filename = "heatmap"}`r ''`
+#' 标题
+#' @export
+#' @examples
+my_fun <- function() 1
+```
+
+```{r examples-my_fun}`r ''`
+my_fun()
+```
+
+```{r tests-my_fun, filename = "heatmap"}`r ''`
+test_that("my_fun works", expect_equal(my_fun(), 1))
+```
+````
+
+**注意代码块顺序**：fusen 会把 `examples-` 块挂到它前面最近的一个 `function-` 块上。
+如果主函数和示例之间还有内部辅助函数的代码块，示例会被挂到辅助函数上，
+主函数的帮助页就没有 Examples 了。所以内部辅助函数的代码块要放在 `examples-` 块**之后**。
+
+新增导出函数后，记得在 `_pkgdown.yml` 的 `reference` 中把它加到合适的分组。
+
+## 新增一篇文章
+
+新建 `dev/flat_xxx.Rmd`（可以复制已有文件，或运行
+`fusen::add_flat_template(template = "add", flat_name = "xxx")`），写完后：
+
+```{r development-new-flat, eval=FALSE}
+fusen::inflate(
+  flat_file = "dev/flat_xxx.Rmd",
+  vignette_name = c("中文标题" = "english-file-name"),
+  check = FALSE
+)
+```
+
+`vignette_name` 使用"中文标题 = 英文文件名"的形式，因为文件名只能包含 ASCII 字符。
+然后在 `dev/inflate_all.R` 的 `flats` 列表中登记这个文件，并在 `_pkgdown.yml` 的
+`articles` 中加上新文章。
+
+## 更新示例数据
+
+```{r development-data, eval=FALSE}
+source("data-raw/sow_demo.R")
+```
+
+## 更新 README 中的示例图
+
+README.md 是手写的（不是 README.Rmd），其中的示例图需要手动重新生成：
+
+```{r development-readme-figure, eval=FALSE}
+devtools::load_all()
+p <- plot_performance_heatmap(
+  sow_demo, x_var = "month", y_var = "parity", fill_var = "born_alive",
+  facet_vars = "farm", y_axis_type = "parity",
+  alpha_by_count = TRUE,
+  fill_lab = "平均产活仔数", title = "各场分月份、分胎次平均产活仔数"
+)
+ggplot2::ggsave("man/figures/README-example.png", p,
+                width = 13, height = 6.5, dpi = 100, bg = "white")
+```
+
+## 依赖管理
+
+`fusen::inflate()` 会调用 `attachment::att_amend_desc()`，根据代码自动更新 DESCRIPTION
+的 Imports/Suggests。配置保存在 `dev/config_attachment.yaml` 中，其中把 showtext 和
+sysfonts 固定在 Suggests（它们只在 `enable_cn_font()` 中按需使用）。如需修改：
+
+```{r development-attachment, eval=FALSE}
+attachment::att_amend_desc(
+  extra.suggests = c("showtext", "sysfonts", "rmarkdown"),
+  pkg_ignore = c("showtext", "sysfonts"),
+  check_if_suggests_is_installed = FALSE,
+  update.config = TRUE
+)
+```
+
+# 首次发布到 GitHub
+
+下面的步骤只需要做一次。
+
+```{r development-github, eval=FALSE}
+# 1. 把 YOUR-GITHUB-USERNAME 替换为你的 GitHub 用户名
+#    （DESCRIPTION、_pkgdown.yml、README.md 中都有）
+files <- c("DESCRIPTION", "_pkgdown.yml", "README.md")
+for (f in files) {
+  x <- readLines(f, encoding = "UTF-8")
+  x <- gsub("YOUR-GITHUB-USERNAME", "你的用户名", x, fixed = TRUE)
+  writeLines(x, f, useBytes = TRUE)
+}
+
+# 2. 初始化 git 并创建 GitHub 仓库（需要先配置好 GITHUB_PAT：usethis::create_github_token()）
+usethis::use_git()
+usethis::use_github()
+
+# 3. 推送后，GitHub Actions 会自动运行两个工作流：
+#    - R-CMD-check：在 Linux / macOS / Windows 上检查包
+#    - pkgdown：构建网站并推送到 gh-pages 分支
+#    第一次 pkgdown 工作流跑完后，到仓库 Settings -> Pages，
+#    Source 选择 "Deploy from a branch"，分支选 gh-pages / (root)。
+#    （也可以用 usethis::use_github_pages() 自动完成这一步）
+```
+
+# 已经完成的一次性设置（记录）
+
+```{r description, eval=FALSE}
+# 以下步骤在创建包时已经执行过，留作记录，不需要再运行
+fusen::fill_description(
+  pkg = here::here(),
+  fields = list(
+    Title = "Performance Heatmaps for Swine Production Data",
+    Description = "Aggregates production records and draws annotated heatmaps.",
+    `Authors@R` = c(
+      person("Your", "Name", email = "mguo2023331@gmail.com", role = c("aut", "cre"))
+    )
+  )
+)
+usethis::use_mit_license("pigheatmap authors")
+usethis::use_testthat(edition = 3)
+usethis::use_data_raw("sow_demo")
+usethis::use_pkgdown()
+usethis::use_github_action("check-standard")
+usethis::use_github_action("pkgdown")
+```

@@ -1,0 +1,39 @@
+Type: Package
+Package: pigheatmap
+Title: Performance Heatmaps for Swine Production Data
+Version: 0.2.0
+Authors@R:
+    person("Your", "Name", , "mguo2023331@gmail.com", role = c("aut", "cre"))
+Description: Aggregates production records (e.g. litter size by parity and
+    month) and draws annotated heatmaps with rich-text cell labels,
+    optional faceting, sample-size based transparency, and segmented
+    colour scales for traits that have empirical optimal ranges (parity,
+    backfat, age at first mating, ...).
+License: MIT + file LICENSE
+URL: https://tony2015116.github.io/pigheatmap/,
+    https://github.com/tony2015116/pigheatmap
+BugReports: https://github.com/tony2015116/pigheatmap/issues
+Depends: 
+    R (>= 4.1.0)
+Imports: 
+    dplyr (>= 1.1.0),
+    ggplot2 (>= 3.4.0),
+    ggtext,
+    grDevices,
+    rlang,
+    scales,
+    stats
+Suggests:
+    knitr,
+    rmarkdown,
+    showtext,
+    sysfonts,
+    testthat (>= 3.0.0)
+VignetteBuilder: 
+    knitr
+Config/fusen/version: 0.7.2
+Config/roxygen2/version: 8.1.0
+Config/testthat/edition: 3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)

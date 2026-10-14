@@ -1,0 +1,48 @@
+url: https://tony2015116.github.io/pigheatmap/
+
+lang: zh_CN
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+  bslib:
+    primary: "#1A9850"
+    # 使用系统字体，不依赖 Google Fonts（国内访问 Google Fonts 很慢）
+    base_font: "system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', sans-serif"
+    heading_font: "system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', sans-serif"
+    code_font: "SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace"
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+
+home:
+  title: pigheatmap：猪场生产数据性能热图
+
+reference:
+- title: 绘制热图
+  desc: 主函数：汇总数据并绘制带数值标注的热图。
+  contents:
+  - plot_performance_heatmap
+  - summarise_heatmap_data
+- title: 分段色阶
+  desc: 为有经验最优区间的性状（胎次、背膘厚、首配日龄等）构造色阶。
+  contents:
+  - build_segment_scale
+  - default_parity_stops
+- title: 主题与中文字体
+  contents:
+  - get_common_theme
+  - enable_cn_font
+- title: 示例数据
+  contents:
+  - sow_demo
+
+articles:
+- title: 使用指南
+  navbar: ~
+  contents:
+  - pigheatmap
+  - segmented-scales
+  - theme-and-fonts

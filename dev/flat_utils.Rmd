@@ -1,0 +1,214 @@
+---
+title: "flat_utils.Rmd：包文档、提示文案、示例数据"
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+<!--
+本文件不生成 vignette（inflate 时 vignette_name = NA），只包含：
+  1. 包级文档与全局 import 声明
+  2. 所有面向用户的中文提示文案（.msg / .stat_default_labels）
+  3. 示例数据集 sow_demo 的文档
+-->
+
+```{r development, include=FALSE}
+library(testthat)
+```
+
+```{r development-load}
+pkgload::load_all(export_all = FALSE)
+```
+
+# pigheatmap-package
+
+<!-- 本文件的小节标题就是生成的 R 文件名：fusen 对不含函数定义的代码块（包文档、数据文档）
+     会忽略 filename 选项，改用小节标题命名文件，所以这里必须用英文。 -->
+
+包级文档与全局 import 声明。
+
+```{r function-pigheatmap-package, filename = "pigheatmap-package"}
+#' @keywords internal
+"_PACKAGE"
+
+## 包级别的导入声明。其余函数统一使用 pkg::fun() 的形式调用，
+## 一眼就能看出每个函数来自哪个依赖包。
+#' @importFrom rlang .data := %||%
+NULL
+```
+
+# zzz
+
+包加载时的设置。
+
+R CMD check 运行示例、pkgdown 构建网站时，R 默认用 pdf 设备画图，它的标准字体不支持中文，
+热图里的中文（图例标题"平均值"、说明文字"备注"等）会导致
+`conversion failure ... in 'mbcsToSbcs'` 错误（Windows 上）或大量警告（Linux 上）。
+所以只在这两种场景下，把默认设备换成支持中文的 png。平时使用本包时不会改动任何设置。
+
+```{r function-onload, filename = "zzz"}
+#' 包加载时执行
+#' @noRd
+.onLoad <- function(libname, pkgname) {
+  use_png_device_when_checking(pkgname)
+  invisible()
+}
+
+#' 在 R CMD check / pkgdown 中改用 png 设备画图
+#'
+#' - pkgdown 在每个示例前用默认设备开图，把默认设备从 pdf 换成 png 即可；
+#' - R CMD check 在加载本包之前就已经打开了 pdf 设备（<pkg>-Ex.pdf），
+#'   所以还需要另开一个 png 设备，让示例画到 png 上。
+#' 交互使用（RStudio 等）或普通 Rscript 脚本中不做任何改动。
+#' @noRd
+use_png_device_when_checking <- function(pkgname = "pigheatmap") {
+  if (interactive()) return(invisible(FALSE))
+  in_check <- identical(Sys.getenv("_R_CHECK_PACKAGE_NAME_"), pkgname)
+  in_pkgdown <- identical(Sys.getenv("IN_PKGDOWN"), "true")
+  if (!in_check && !in_pkgdown) return(invisible(FALSE))
+
+  if (identical(getOption("device"), grDevices::pdf)) {
+    # 写到临时文件，避免在当前目录留下 Rplot001.png
+    options(device = png_tempfile)
+  }
+  if (in_check && identical(names(grDevices::dev.cur()), "pdf")) {
+    grDevices::png(tempfile(fileext = ".png"))
+  }
+  invisible(TRUE)
+}
+
+#' 写到临时文件的 png 设备
+#' @noRd
+png_tempfile <- function(...) {
+  grDevices::png(tempfile(fileext = ".png"))
+}
+```
+
+```{r tests-onload, filename = "zzz"}
+test_that("只在检查/构建网站时把 pdf 设备换成 png", {
+  skip_if(interactive())
+  old_opt <- options(device = grDevices::pdf)
+  old_env <- Sys.getenv(c("_R_CHECK_PACKAGE_NAME_", "IN_PKGDOWN"), unset = NA)
+  on.exit({
+    options(old_opt)
+    for (nm in names(old_env)) {
+      if (is.na(old_env[[nm]])) Sys.unsetenv(nm) else do.call(Sys.setenv, as.list(old_env[nm]))
+    }
+  })
+
+  # 普通运行：不改动
+  Sys.unsetenv(c("_R_CHECK_PACKAGE_NAME_", "IN_PKGDOWN"))
+  expect_false(use_png_device_when_checking())
+  expect_identical(getOption("device"), grDevices::pdf)
+
+  # pkgdown：只换默认设备
+  Sys.setenv(IN_PKGDOWN = "true")
+  expect_true(use_png_device_when_checking())
+  expect_identical(getOption("device"), png_tempfile)
+
+  # R CMD check：已打开 pdf 设备时，另开 png 设备
+  Sys.unsetenv("IN_PKGDOWN")
+  Sys.setenv(`_R_CHECK_PACKAGE_NAME_` = "pigheatmap")
+  options(device = grDevices::pdf)
+  grDevices::pdf(NULL)
+  pdf_dev <- grDevices::dev.cur()
+  use_png_device_when_checking("pigheatmap")
+  expect_identical(names(grDevices::dev.cur()), "png")
+  grDevices::dev.off()
+  grDevices::dev.off(pdf_dev)
+})
+```
+
+# strings
+
+所有面向用户的中文提示文案。
+
+CRAN / `R CMD check` 要求 R 代码中的字符串只含 ASCII，因此中文以 `\uXXXX`
+转义保存，原文写在行尾注释里。
+
+**修改文案的流程**：改行尾注释里的中文（或新增一行 `key = "中文"`），然后在包根目录运行：
+
+```{r development-escape, eval=FALSE}
+source("dev/inflate_all.R")   # 会先运行 tools/escape_strings.R 转义中文
+```
+
+```{r function-strings, filename = "strings"}
+.stat_default_labels <- list(
+  mean = "\u5e73\u5747\u503c", # 平均值
+  median = "\u4e2d\u4f4d\u6570", # 中位数
+  sum = "\u603b\u548c", # 总和
+  sd = "\u6807\u51c6\u5dee", # 标准差
+  min = "\u6700\u5c0f\u503c", # 最小值
+  max = "\u6700\u5927\u503c" # 最大值
+)
+
+.msg <- list(
+  generic_stat = "\u7edf\u8ba1\u503c", # 统计值
+  caption_prefix = "\u5907\u6ce8\uff1a", # 备注：
+  not_df = "`data` \u5fc5\u987b\u662f\u4e00\u4e2a\u6570\u636e\u6846 (data.frame / tibble)\u3002", # `data` 必须是一个数据框 (data.frame / tibble)。
+  missing_cols = "\u4ee5\u4e0b\u5217\u5728 `data` \u4e2d\u4e0d\u5b58\u5728\uff1a%s", # 以下列在 `data` 中不存在：%s
+  facet_len = "`facet_vars` \u957f\u5ea6\u5fc5\u987b\u4e3a 1 \u6216 2\uff08\u5f53\u524d\u4e3a %d\uff09\u3002", # `facet_vars` 长度必须为 1 或 2（当前为 %d）。
+  coerce_na = "`%s` \u4e2d\u6709 %d \u4e2a\u503c\u65e0\u6cd5\u8f6c\u6362\u4e3a\u6570\u503c\uff0c\u5df2\u88ab\u89c6\u4e3a\u7f3a\u5931\u503c\u5e76\u5728\u805a\u5408\u65f6\u5254\u9664\u3002", # `%s` 中有 %d 个值无法转换为数值，已被视为缺失值并在聚合时剔除。
+  stat_na = "\u6709 %d \u4e2a\u5206\u7ec4\u7684\u7edf\u8ba1\u503c\u4e3a NA\uff08\u4f8b\u5982\u6837\u672c\u91cf\u4e0d\u8db3\u4ee5\u8ba1\u7b97\u6807\u51c6\u5dee\u7b49\u7edf\u8ba1\u91cf\uff09\uff0c\u5df2\u88ab\u5254\u9664\u3002", # 有 %d 个分组的统计值为 NA（例如样本量不足以计算标准差等统计量），已被剔除。
+  no_data = "\u8fc7\u6ee4/\u805a\u5408\u540e\u6ca1\u6709\u53ef\u7528\u6570\u636e\u7528\u4e8e\u7ed8\u56fe\uff0c\u8bf7\u68c0\u67e5 `fill_var` \u662f\u5426\u542b\u6709\u6548\u6570\u503c\uff0c\u6216 `min_count` \u662f\u5426\u8bbe\u7f6e\u8fc7\u9ad8\u3002", # 过滤/聚合后没有可用数据用于绘图，请检查 `fill_var` 是否含有效数值，或 `min_count` 是否设置过高。
+  axis_not_numeric = "`%s` \u88ab\u8bc6\u522b\u4e3a\u80ce\u6b21\u7c7b\u53d8\u91cf\uff0c\u4f46\u5176\u7c7b\u578b\u4e0d\u662f\u6570\u503c\u578b\uff0c\u5df2\u8df3\u8fc7\u6574\u6570\u523b\u5ea6\u8bbe\u7f6e\u3002", # `%s` 被识别为胎次类变量，但其类型不是数值型，已跳过整数刻度设置。
+  need_stops = "`plot_type = \"segmented\"` \u65f6\u5fc5\u987b\u63d0\u4f9b `color_stops`\uff08\u81ea\u5b9a\u4e49\u65ad\u70b9\u4e0e\u989c\u8272\uff09\uff0c\u53c2\u89c1 ?plot_performance_heatmap \u7684\u793a\u4f8b\u3002", # `plot_type = \"segmented\"` 时必须提供 `color_stops`（自定义断点与颜色），参见 ?plot_performance_heatmap 的示例。
+  stops_cols = "`stops` \u5fc5\u987b\u5305\u542b `value` \u548c `color` \u4e24\u5217\u3002", # `stops` 必须包含 `value` 和 `color` 两列。
+  stops_n = "`stops` \u81f3\u5c11\u9700\u8981 2 \u4e2a\u65ad\u70b9\u624d\u80fd\u6784\u6210\u4e00\u4e2a\u8272\u9636\u3002", # `stops` 至少需要 2 个断点才能构成一个色阶。
+  stops_sorted = "`stops$value` \u5fc5\u987b\u6309\u5347\u5e8f\u6392\u5217\u3002", # `stops$value` 必须按升序排列。
+  limits_bad = "`limits` \u5fc5\u987b\u662f\u957f\u5ea6\u4e3a 2 \u7684\u5347\u5e8f\u6570\u503c\u5411\u91cf\u3002", # `limits` 必须是长度为 2 的升序数值向量。
+  stops_outside = "`stops$value` \u4e2d\u6709\u65ad\u70b9\u8d85\u51fa\u4e86 `limits` \u8303\u56f4\uff0c\u8d85\u51fa\u90e8\u5206\u7684\u989c\u8272\u4e0d\u4f1a\u663e\u793a\u3002", # `stops$value` 中有断点超出了 `limits` 范围，超出部分的颜色不会显示。
+  alpha_range_bad = "`alpha_range` \u5fc5\u987b\u662f\u957f\u5ea6\u4e3a 2\u3001\u53d6\u503c\u5728 [0, 1] \u4e4b\u95f4\u7684\u5347\u5e8f\u6570\u503c\u5411\u91cf\u3002", # `alpha_range` 必须是长度为 2、取值在 [0, 1] 之间的升序数值向量。
+  min_count_bad = "`min_count` \u5fc5\u987b\u662f\u4e0d\u5c0f\u4e8e 1 \u7684\u5355\u4e2a\u6570\u503c\u3002", # `min_count` 必须是不小于 1 的单个数值。
+  space_ignored = "`facet_space = \"%s\"` \u53ea\u5728\u5bf9\u5e94\u65b9\u5411\u7684 `facet_scales` \u4e3a free \u65f6\u751f\u6548\uff0c\u5f53\u524d\u8bbe\u7f6e\u4e0b\u8be5\u53c2\u6570\u4e0d\u8d77\u4f5c\u7528\u3002", # `facet_space = \"%s\"` 只在对应方向的 `facet_scales` 为 free 时生效，当前设置下该参数不起作用。
+  theme_args_bad = "`theme_args` \u5fc5\u987b\u662f\u4e00\u4e2a\u5177\u540d\u5217\u8868\uff0c\u4f8b\u5982 list(strip_text_size = 16)\u3002", # `theme_args` 必须是一个具名列表，例如 list(strip_text_size = 16)。
+  theme_args_unknown = "`theme_args` \u4e2d\u6709 get_common_theme() \u4e0d\u652f\u6301\u7684\u53c2\u6570\uff1a%s", # `theme_args` 中有 get_common_theme() 不支持的参数：%s
+  showtext_missing = "\u9700\u8981\u5148\u5b89\u88c5 showtext \u5305\uff1ainstall.packages(\"showtext\")" # 需要先安装 showtext 包：install.packages(\"showtext\")
+)
+```
+
+```{r tests-strings, filename = "strings"}
+test_that("提示文案均为 ASCII 转义且能正确还原为中文", {
+  all_msgs <- c(unlist(.stat_default_labels), unlist(.msg))
+  expect_true(all(nzchar(all_msgs)))
+  expect_equal(.stat_default_labels$mean, "平均值")
+  expect_true(all(c("mean", "median", "sum", "sd", "min", "max") %in% names(.stat_default_labels)))
+})
+```
+
+# data
+
+示例数据集 `sow_demo` 的文档。
+数据由 `data-raw/sow_demo.R` 模拟生成。修改模拟逻辑后，运行该脚本即可更新 `data/sow_demo.rda`。
+
+```{r function-sow_demo, filename = "data"}
+#' 示例数据：母猪分娩记录（模拟）
+#'
+#' 模拟的 3 个猪场、2026 年 1~6 月共 1800 窝分娩记录，用于文档和示例。
+#' 三个场的胎龄结构不同：Farm A 结构合理（平均胎次约 3.8），Farm B 以低胎次为主
+#' （约 2.7），Farm C 高胎次母猪偏多（约 6.5）。产活仔数在 3~5 胎达到高峰，之后逐渐
+#' 下降；背膘厚有约 7% 的缺失值。
+#'
+#' @format 一个包含 1800 行、6 列的数据框：
+#' \describe{
+#'   \item{month}{分娩年月，字符型，如 "2026-01"}
+#'   \item{farm}{猪场，"Farm A" / "Farm B" / "Farm C"}
+#'   \item{parity}{胎次，整数 1~10}
+#'   \item{born_alive}{产活仔数（头）}
+#'   \item{weaned}{断奶仔猪数（头）}
+#'   \item{backfat}{分娩时背膘厚（mm），含缺失值}
+#' }
+#' @source 模拟数据，生成脚本见 GitHub 仓库中的 `data-raw/sow_demo.R`。
+#' @examples
+#' head(sow_demo)
+"sow_demo"
+```
+
+```{r development-inflate, eval=FALSE}
+# 在控制台中执行（保持 eval=FALSE，避免无限循环）
+fusen::inflate(
+  flat_file = "dev/flat_utils.Rmd",
+  vignette_name = NA,
+  check = FALSE
+)
+```

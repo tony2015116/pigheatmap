@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+inst/doc
+docs
+*.Rcheck/
+pigheatmap_*.tar.gz
+.httr-oauth
+.DS_Store
+.quarto

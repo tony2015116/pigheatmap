@@ -1,0 +1,76 @@
+flat_heatmap.Rmd:
+  path: dev/flat_heatmap.Rmd
+  state: active
+  R:
+  - R/heatmap.R
+  - R/summarise.R
+  tests:
+  - tests/testthat/test-summarise.R
+  - tests/testthat/test-heatmap.R
+  vignettes: vignettes/pigheatmap.Rmd
+  inflate:
+    flat_file: dev/flat_heatmap.Rmd
+    vignette_name: pigheatmap
+    open_vignette: false
+    check: false
+    document: true
+    overwrite: 'yes'
+    clean: 'yes'
+    codecov: false
+flat_scales.Rmd:
+  path: dev/flat_scales.Rmd
+  state: active
+  R: R/scales.R
+  tests: tests/testthat/test-scales.R
+  vignettes: vignettes/segmented-scales.Rmd
+  inflate:
+    flat_file: dev/flat_scales.Rmd
+    vignette_name: segmented-scales
+    open_vignette: false
+    check: false
+    document: true
+    overwrite: 'yes'
+    clean: 'yes'
+    codecov: false
+flat_theme.Rmd:
+  path: dev/flat_theme.Rmd
+  state: active
+  R: R/theme.R
+  tests: tests/testthat/test-theme.R
+  vignettes: vignettes/theme-and-fonts.Rmd
+  inflate:
+    flat_file: dev/flat_theme.Rmd
+    vignette_name: theme-and-fonts
+    open_vignette: false
+    check: false
+    document: true
+    overwrite: 'yes'
+    clean: 'yes'
+    codecov: false
+flat_utils.Rmd:
+  path: dev/flat_utils.Rmd
+  state: active
+  R:
+  - R/pigheatmap-package.R
+  - R/zzz.R
+  - R/strings.R
+  - R/data.R
+  tests:
+  - tests/testthat/test-zzz.R
+  - tests/testthat/test-strings.R
+  vignettes: []
+  inflate:
+    flat_file: dev/flat_utils.Rmd
+    vignette_name: .na
+    open_vignette: false
+    check: false
+    document: true
+    overwrite: 'yes'
+    clean: 'yes'
+    codecov: false
+keep:
+  path: keep
+  state: active
+  R: []
+  tests: tests/testthat/helper-data.R
+  vignettes: []

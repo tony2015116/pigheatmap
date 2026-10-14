@@ -1,0 +1,250 @@
+---
+title: "flat_theme.Rmd：主题与中文字体"
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+```{r development, include=FALSE}
+library(testthat)
+```
+
+```{r development-load}
+pkgload::load_all(export_all = FALSE)
+```
+
+```{r setup-figures, include = FALSE}
+knitr::opts_chunk$set(fig.width = 9, fig.height = 4.5, out.width = "100%", dpi = 96)
+```
+
+```{r}
+library(ggplot2)
+```
+
+# 统一主题：get_common_theme()
+
+`get_common_theme()` 是热图使用的统一主题：标题加粗居中、去掉网格线、分面标题灰底、
+说明文字支持 HTML/Markdown。在 `plot_performance_heatmap()` 中通过 `theme_args`
+传参调整；它本身也可以叠加到任何 ggplot 上，让同一份报告里的图风格统一。
+
+```{r function-get_common_theme, filename = "theme"}
+#' 获取通用绘图主题
+#'
+#' @description
+#' 项目统一的 ggplot 主题样式。字号相关参数均已开放，方便按图表用途
+#' （例如投屏或打印报告）调整坐标轴、标题、图例等文字大小。
+#'
+#' 本函数**不会**调用 `showtext::showtext_auto()`，因为那会修改整个 R 会话的
+#' 图形设备状态。需要中文字体渲染时，请在脚本开头显式调用一次 [enable_cn_font()]。
+#'
+#' @param base_size 基础字体大小，默认为 14，影响未单独设置的其他文字元素。
+#' @param title_size 主标题字号，默认为 20。
+#' @param subtitle_size 副标题字号，默认为 12。
+#' @param caption_size 底部说明文字字号，默认为 10。
+#' @param axis_text_size 坐标轴刻度文字字号，默认为 12。
+#' @param axis_title_size 坐标轴标题字号，默认为 15。
+#' @param strip_text_size 分面标题字号，默认为 14。
+#' @param legend_title_size 图例标题字号，默认为 13。
+#' @param legend_text_size 图例文字字号，默认为 11。
+#' @param x_axis_angle X 轴刻度文字的旋转角度（度），默认为 -45。
+#' @param y_axis_angle Y 轴刻度文字的旋转角度（度），默认为 0（水平）。
+#' @param x_axis_hjust,x_axis_vjust （可选）X 轴刻度文字的水平/垂直对齐方式。默认为
+#'   `NULL`，此时根据 `x_axis_angle` 自动选择；也可以直接传 0~1 的数值覆盖。
+#' @param y_axis_hjust,y_axis_vjust （可选）Y 轴刻度文字的对齐方式，用法同上。
+#' @param panel_spacing_mm 分面之间的间距（毫米），默认为 6。
+#' @param legend_position 图例位置，默认为 `"right"`。
+#'
+#' @return 一个 ggplot2 主题对象，可以用 `+` 叠加到图上。
+#' @export
+#' @examples
+get_common_theme <- function(base_size = 14,
+                             title_size = 20,
+                             subtitle_size = 12,
+                             caption_size = 10,
+                             axis_text_size = 12,
+                             axis_title_size = 15,
+                             strip_text_size = 14,
+                             legend_title_size = 13,
+                             legend_text_size = 11,
+                             x_axis_angle = -45,
+                             y_axis_angle = 0,
+                             x_axis_hjust = NULL,
+                             x_axis_vjust = NULL,
+                             y_axis_hjust = NULL,
+                             y_axis_vjust = NULL,
+                             panel_spacing_mm = 6,
+                             legend_position = "right") {
+
+  # 根据旋转角度自动选择对齐方式，也可以由参数直接覆盖
+  x_hjust <- x_axis_hjust %||% (if (x_axis_angle == 0) 0.5 else if (x_axis_angle > 0) 1 else 0)
+  x_vjust <- x_axis_vjust %||% (if (x_axis_angle == 0) 1 else 0.5)
+  y_hjust <- y_axis_hjust %||% (if (y_axis_angle == 0) 1 else 0.5)
+  y_vjust <- y_axis_vjust %||% 0.5
+
+  ggplot2::theme_minimal(base_size = base_size) +
+    ggplot2::theme(
+      # 标题：加粗、居中
+      plot.title = ggplot2::element_text(size = title_size, face = "bold", hjust = 0.5),
+      plot.subtitle = ggplot2::element_text(size = subtitle_size, hjust = 0.5, color = "grey30"),
+      # 说明文字：支持 markdown / HTML
+      plot.caption = ggtext::element_markdown(size = caption_size, hjust = 1),
+      plot.margin = ggplot2::margin(10, 10, 20, 10),
+
+      # 坐标轴
+      axis.text.x = ggplot2::element_text(angle = x_axis_angle, hjust = x_hjust, vjust = x_vjust,
+                                          size = axis_text_size, face = "bold"),
+      axis.text.y = ggplot2::element_text(angle = y_axis_angle, hjust = y_hjust, vjust = y_vjust,
+                                          size = axis_text_size, face = "bold"),
+      axis.title = ggplot2::element_text(size = axis_title_size, face = "bold"),
+
+      # 分面
+      strip.text = ggplot2::element_text(size = strip_text_size, face = "bold", color = "black"),
+      strip.background = ggplot2::element_rect(fill = "#E6E6E6", color = NA),
+      panel.spacing = ggplot2::unit(panel_spacing_mm, "mm"),
+
+      # 图例
+      legend.position = legend_position,
+      legend.title = ggplot2::element_text(size = legend_title_size, face = "bold"),
+      legend.text = ggplot2::element_text(size = legend_text_size),
+
+      # 面板：去除网格线（适合热图），添加边框
+      panel.grid = ggplot2::element_blank(),
+      panel.border = ggplot2::element_rect(color = "grey", fill = NA, linewidth = 0.5)
+    )
+}
+```
+
+```{r examples-get_common_theme}
+library(ggplot2)
+ggplot(mtcars, aes(factor(cyl), factor(gear), fill = mpg)) +
+  geom_tile() +
+  labs(title = "mtcars", x = "cyl", y = "gear") +
+  get_common_theme(x_axis_angle = 0, title_size = 16)
+```
+
+## 在热图中调整主题
+
+`get_common_theme()` 的所有参数都可以放进 `theme_args` 传给 `plot_performance_heatmap()`。
+比如投屏时把字号整体调大、横排 X 轴文字、把图例放到下方：
+
+```{r, fig.height = 5.5}
+plot_performance_heatmap(
+  sow_demo, "month", "farm", "weaned",
+  title = "各场月度平均断奶数",
+  theme_args = list(
+    base_size = 16,
+    title_size = 22,
+    axis_text_size = 14,
+    x_axis_angle = 0,
+    legend_position = "bottom"
+  )
+)
+```
+
+拼写错误的参数会直接报错，而不是被悄悄忽略：
+
+```{r, error = TRUE}
+plot_performance_heatmap(
+  sow_demo, "month", "farm", "weaned",
+  theme_args = list(axis_txt_size = 14)
+)
+```
+
+```{r tests-get_common_theme, filename = "theme"}
+test_that("get_common_theme 返回主题且字号/角度参数生效", {
+  th <- get_common_theme(title_size = 30, strip_text_size = 9, x_axis_angle = 90)
+  expect_s3_class(th, "theme")
+  expect_equal(th$plot.title$size, 30)
+  expect_equal(th$strip.text$size, 9)
+  expect_equal(th$axis.text.x$angle, 90)
+  expect_equal(th$axis.text.x$hjust, 1)
+})
+
+test_that("对齐方式可以手动覆盖", {
+  th <- get_common_theme(x_axis_angle = -45, x_axis_hjust = 0.3, x_axis_vjust = 0.7)
+  expect_equal(th$axis.text.x$hjust, 0.3)
+  expect_equal(th$axis.text.x$vjust, 0.7)
+})
+
+test_that("get_common_theme 不调用 showtext（无全局副作用）", {
+  expect_false(any(grepl("showtext", deparse(body(get_common_theme)))))
+})
+```
+
+# 中文字体：enable_cn_font()
+
+在 RStudio 里预览图片时中文通常显示正常，但用 `ggsave()` 导出 PNG、或在没有中文字体的
+服务器上运行时，中文可能变成方框。`enable_cn_font()` 调用 showtext 解决这个问题。
+
+**注意 dpi 必须和导出时一致**：showtext 默认按 96 dpi 渲染文字，如果用
+`ggsave(dpi = 300)` 导出而这里没有设成 300，图片中的文字会明显偏小。
+
+```{r function-enable_cn_font, filename = "theme"}
+#' 启用中文字体渲染
+#'
+#' @description
+#' 调用 `showtext::showtext_auto()`，让中文在各类图形设备（尤其是 `ggsave()`
+#' 导出的位图）上正确显示，并同步设置 showtext 的 dpi。
+#'
+#' **dpi 必须和导出时一致**：showtext 默认按 96 dpi 渲染文字，如果用
+#' `ggsave(dpi = 300)` 导出而这里没有设成 300，图片中的文字会明显偏小。
+#'
+#' 该函数会修改整个 R 会话的图形状态，因此只需要在脚本开头调用一次。
+#' 需要先安装 showtext：`install.packages("showtext")`。
+#'
+#' @param dpi 与 `ggsave()` 导出时一致的 dpi，默认为 300。
+#' @param family （可选）要注册的字体文件路径，例如 `"C:/Windows/Fonts/msyh.ttc"`。
+#'   提供后会以 `family_name` 注册为字体族；不提供则使用 showtext 内置的中文字体。
+#' @param family_name 注册字体时使用的字体族名称，默认为 `"cn"`。
+#'
+#' @return 不可见地返回 `TRUE`。
+#' @export
+#' @examples
+enable_cn_font <- function(dpi = 300, family = NULL, family_name = "cn") {
+  if (!requireNamespace("showtext", quietly = TRUE)) {
+    stop(.msg$showtext_missing, call. = FALSE)
+  }
+  if (!is.null(family)) {
+    sysfonts::font_add(family = family_name, regular = family)
+  }
+  showtext::showtext_auto()
+  showtext::showtext_opts(dpi = dpi)
+  invisible(TRUE)
+}
+```
+
+```{r examples-enable_cn_font, eval = FALSE}
+#' \dontrun{
+# 脚本开头调用一次
+enable_cn_font(dpi = 300)
+
+p <- plot_performance_heatmap(sow_demo, "month", "parity", "weaned")
+ggplot2::ggsave("heatmap.png", p, width = 12, height = 7, dpi = 300)
+
+# 使用指定的字体文件（例如 Windows 上的微软雅黑）
+enable_cn_font(dpi = 300, family = "C:/Windows/Fonts/msyh.ttc")
+p + ggplot2::theme(text = ggplot2::element_text(family = "cn"))
+#' }
+```
+
+```{r tests-enable_cn_font, filename = "theme"}
+test_that("enable_cn_font 在安装了 showtext 时可以启用并恢复", {
+  skip_if_not_installed("showtext")
+  old <- showtext::showtext_opts()
+  on.exit({
+    showtext::showtext_auto(FALSE)
+    showtext::showtext_opts(dpi = old$dpi)
+  })
+  expect_invisible(enable_cn_font(dpi = 150))
+  expect_equal(showtext::showtext_opts()$dpi, 150)
+})
+```
+
+```{r development-inflate, eval=FALSE}
+# 在控制台中执行（保持 eval=FALSE，避免无限循环）
+fusen::inflate(
+  flat_file = "dev/flat_theme.Rmd",
+  vignette_name = c("主题与中文字体" = "theme-and-fonts"),
+  check = FALSE
+)
+```

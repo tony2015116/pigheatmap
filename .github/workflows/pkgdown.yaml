@@ -1,0 +1,57 @@
+# 构建 pkgdown 网站并发布到 gh-pages 分支
+# 基于 https://github.com/r-lib/actions/tree/v2/examples 的 pkgdown 模板
+#
+# 首次运行成功后，到仓库 Settings -> Pages：
+#   Source 选择 "Deploy from a branch"，Branch 选择 gh-pages / (root)
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+name: pkgdown.yaml
+
+permissions: read-all
+
+jobs:
+  pkgdown:
+    runs-on: ubuntu-latest
+    # 同一时间只运行一个部署任务（PR 构建互不影响）
+    concurrency:
+      group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # 文章中的图形含中文，Linux runner 默认没有中文字体，会显示成方框
+      - name: Install CJK fonts
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::pkgdown, local::.
+          needs: website
+
+      - name: Build site
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        shell: Rscript {0}
+
+      # PR 只构建、不发布，用来提前发现网站构建错误
+      - name: Deploy to GitHub pages 🚀
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@v4.5.0
+        with:
+          clean: false
+          branch: gh-pages
+          folder: docs
