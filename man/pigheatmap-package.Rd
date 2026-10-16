@@ -11,18 +11,18 @@ Aggregates production records (e.g. litter size by parity and month) and draws a
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://YOUR-GITHUB-USERNAME.github.io/pigheatmap/}
-  \item \url{https://github.com/YOUR-GITHUB-USERNAME/pigheatmap}
-  \item Report bugs at \url{https://github.com/YOUR-GITHUB-USERNAME/pigheatmap/issues}
+  \item \url{https://tony2015116.github.io/pigheatmap/}
+  \item \url{https://github.com/tony2015116/pigheatmap}
+  \item Report bugs at \url{https://github.com/tony2015116/pigheatmap/issues}
 }
 
 }
 \author{
-\strong{Maintainer}: Your Name \email{mguo2023331@gmail.com}
+\strong{Maintainer}: Guo Meng \email{mguo2023331@gmail.com}
 
 Authors:
 \itemize{
-  \item Your Name \email{mguo2023331@gmail.com}
+  \item Guo Meng \email{mguo2023331@gmail.com}
 }
 
 }

@@ -28,7 +28,10 @@ test_that("只在检查/构建网站时把 pdf 设备换成 png", {
   grDevices::pdf(NULL)
   pdf_dev <- grDevices::dev.cur()
   use_png_device_when_checking("pigheatmap")
-  expect_identical(names(grDevices::dev.cur()), "png")
+    # 已切换到新开的 png 设备。注意设备名因系统而异：Linux/Windows 为 "png"，
+  # macOS 为 "quartz_off_screen"，所以只检查"不再是 pdf 设备"
+  expect_false(identical(grDevices::dev.cur(), pdf_dev))
+  expect_false(identical(names(grDevices::dev.cur()), "pdf"))
   grDevices::dev.off()
   grDevices::dev.off(pdf_dev)
 })
