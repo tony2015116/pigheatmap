@@ -10,17 +10,16 @@ mating, ...).
 
 Useful links:
 
-- <https://YOUR-GITHUB-USERNAME.github.io/pigheatmap/>
+- <https://tony2015116.github.io/pigheatmap/>
 
-- <https://github.com/YOUR-GITHUB-USERNAME/pigheatmap>
+- <https://github.com/tony2015116/pigheatmap>
 
-- Report bugs at
-  <https://github.com/YOUR-GITHUB-USERNAME/pigheatmap/issues>
+- Report bugs at <https://github.com/tony2015116/pigheatmap/issues>
 
 ## Author
 
-**Maintainer**: Your Name <mguo2023331@gmail.com>
+**Maintainer**: Guo Meng <mguo2023331@gmail.com>
 
 Authors:
 
-- Your Name <mguo2023331@gmail.com>
+- Guo Meng <mguo2023331@gmail.com>
